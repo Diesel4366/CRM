@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   try {
     let supabaseResponse = NextResponse.next({ request })
 
@@ -34,8 +34,7 @@ export async function proxy(request: NextRequest) {
 
     return supabaseResponse
   } catch (e) {
-    console.error('[proxy] error:', e)
-    // При ошибке пропускаем дальше — Next.js сам покажет страницу
+    console.error('[middleware] error:', e)
     return NextResponse.next()
   }
 }
