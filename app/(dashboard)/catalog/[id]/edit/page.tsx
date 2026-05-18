@@ -100,7 +100,9 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Розничная цена, ₽</label>
+              <label className="block text-sm font-medium text-gray-700">
+                {isBundle ? 'Цена комплекта, ₽' : 'Розничная цена, ₽'}
+              </label>
               <input
                 name="retail_price"
                 type="number"
@@ -109,6 +111,11 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
                 defaultValue={ci.retail_price}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
               />
+              {isBundle && (
+                <p className="text-xs text-gray-400">
+                  Если отличается от суммы компонентов — разница добавится строкой скидки/наценки
+                </p>
+              )}
             </div>
           </div>
 

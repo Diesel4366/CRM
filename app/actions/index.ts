@@ -517,10 +517,12 @@ export async function addBundleToOrderAction(formData: FormData) {
   const orderId = formData.get('order_id') as string
   const bundleId = formData.get('bundle_id') as string
 
-  const { data: components } = await db
-    .from('catalog_bundle_items')
-    .select('quantity, item:item_id(name, item_type, cost_price, retail_price, unit)')
-    .eq('bundle_id', bundleId)
+  const [{ data: bundle }, { data: components }] = await Promise.all([
+    db.from('catalog_items').select('name, retail_price').eq('id', bundleId).single(),
+    db.from('catalog_bundle_items')
+      .select('quantity, item:item_id(name, item_type, cost_price, retail_price, unit)')
+      .eq('bundle_id', bundleId),
+  ])
 
   if (!components?.length) {
     revalidatePath(`/orders/${orderId}`)
@@ -536,6 +538,25 @@ export async function addBundleToOrderAction(formData: FormData) {
     cost_price: c.item.cost_price ?? 0,
     unit_price: c.item.retail_price ?? 0,
   }))
+
+  // Если у комплекта задана цена и она отличается от суммы компонентов —
+  // добавляем строку скидки/надбавки
+  const componentSum = rows.reduce((s, r) => s + r.unit_price * r.quantity, 0)
+  const bundlePrice = Number(bundle?.retail_price ?? 0)
+  if (bundlePrice > 0 && bundlePrice !== componentSum) {
+    const diff = bundlePrice - componentSum // отрицательное = скидка
+    rows.push({
+      order_id: orderId,
+      item_type: 'other',
+      name: diff < 0
+        ? `Скидка: ${bundle.name}`
+        : `Доп. наценка: ${bundle.name}`,
+      quantity: 1,
+      unit: '—',
+      cost_price: 0,
+      unit_price: diff,
+    })
+  }
 
   await db.from('order_items').insert(rows)
   await recalcOrderTotals(db, orderId)
