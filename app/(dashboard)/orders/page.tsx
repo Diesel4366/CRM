@@ -24,8 +24,16 @@ export default async function OrdersPage() {
   const supabase = await createClient()
   const { data: orders } = await supabase
     .from('orders')
-    .select('*, client(name)')
+    .select('*')
     .order('created_at', { ascending: false })
+
+  const clientIds = [...new Set((orders ?? []).map((o: any) => o.client_id).filter(Boolean))]
+  const { data: clients } = clientIds.length
+    ? await supabase.from('clients').select('id, name').in('id', clientIds)
+    : { data: [] }
+  const clientMap: Record<string, string> = Object.fromEntries(
+    (clients ?? []).map((c: any) => [c.id, c.name])
+  )
 
   return (
     <div className="space-y-4">
@@ -54,7 +62,7 @@ export default async function OrdersPage() {
                 <span className="font-medium">{order.order_number}</span>
                 <Badge variant={statusVariant[order.status]}>{statusLabel[order.status]}</Badge>
               </div>
-              <span className="text-sm text-gray-500">{order.client?.name}</span>
+              <span className="text-sm text-gray-500">{clientMap[(order as any).client_id]}</span>
               <span className="text-xs text-gray-400">
                 {order.scheduled_at
                   ? format(parseISO(order.scheduled_at), 'd MMM yyyy', { locale: ru })

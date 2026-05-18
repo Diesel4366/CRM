@@ -49,24 +49,30 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     { data: order },
     { data: catalogItems },
   ] = await Promise.all([
-    supabase.from('orders').select(`
-      *,
-      client(id, name, phone),
-      legal_entity:legal_entities(name),
-      outlet:outlets(name, address),
-      order_items(*),
-      documents(*)
-    `).eq('id', id).single(),
+    supabase.from('orders').select('*, order_items(*), documents(*)').eq('id', id).single(),
     supabase.from('catalog_items').select('*').eq('active', true).order('name'),
   ])
 
   if (!order) notFound()
 
+  const ordAny = order as any
+  const [clientRes, legalRes, outletRes] = await Promise.all([
+    ordAny.client_id
+      ? supabase.from('clients').select('id, name, phone').eq('id', ordAny.client_id).single()
+      : { data: null },
+    ordAny.legal_entity_id
+      ? supabase.from('legal_entities').select('name').eq('id', ordAny.legal_entity_id).single()
+      : { data: null },
+    ordAny.outlet_id
+      ? supabase.from('outlets').select('name, address').eq('id', ordAny.outlet_id).single()
+      : { data: null },
+  ])
+
   const items = ((order as any).order_items ?? []) as OrderItem[]
   const docs = (order as any).documents ?? []
-  const client = (order as any).client
-  const legalEntity = (order as any).legal_entity
-  const outlet = (order as any).outlet
+  const client = clientRes.data as any
+  const legalEntity = legalRes.data as any
+  const outlet = outletRes.data as any
 
   const totalPrice = items.reduce((s, i) => s + i.unit_price * i.quantity, 0)
   const totalCost = items.reduce((s, i) => s + i.cost_price * i.quantity, 0)

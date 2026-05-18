@@ -8,14 +8,28 @@ export default async function KktPage() {
   const supabase = await createClient()
   const { data: kktList } = await supabase
     .from('kkt')
-    .select(`
-      *,
-      outlet(name, address, legal_entity(name, client(name))),
-      fn(id, expires_at, status, fn_type),
-      ofd_subscriptions(id, expires_at, provider, status)
-    `)
+    .select('*, fn(id, expires_at, status, fn_type), ofd_subscriptions(id, expires_at, provider, status)')
     .eq('status', 'active')
     .order('created_at', { ascending: false })
+
+  const outletIds = [...new Set((kktList ?? []).map((k: any) => k.outlet_id).filter(Boolean))]
+  const { data: outlets } = outletIds.length
+    ? await supabase.from('outlets').select('id, name, address, legal_entity_id').in('id', outletIds)
+    : { data: [] }
+
+  const leIds = [...new Set((outlets ?? []).map((o: any) => o.legal_entity_id).filter(Boolean))]
+  const { data: legalEntities } = leIds.length
+    ? await supabase.from('legal_entities').select('id, name, client_id').in('id', leIds)
+    : { data: [] }
+
+  const clientIds = [...new Set((legalEntities ?? []).map((le: any) => le.client_id).filter(Boolean))]
+  const { data: clients } = clientIds.length
+    ? await supabase.from('clients').select('id, name').in('id', clientIds)
+    : { data: [] }
+
+  const outletMap = Object.fromEntries((outlets ?? []).map((o: any) => [o.id, o]))
+  const leMap = Object.fromEntries((legalEntities ?? []).map((le: any) => [le.id, le]))
+  const clientMap = Object.fromEntries((clients ?? []).map((c: any) => [c.id, c.name]))
 
   return (
     <div className="space-y-4">
@@ -25,6 +39,9 @@ export default async function KktPage() {
           <div className="p-8 text-center text-sm text-gray-400">Касс пока нет</div>
         )}
         {kktList?.map((kkt: any) => {
+          const outlet = outletMap[kkt.outlet_id]
+          const le = outlet ? leMap[outlet.legal_entity_id] : null
+          const clientName = le ? clientMap[le.client_id] : null
           const activeFn = kkt.fn?.find((f: any) => f.status !== 'replaced')
           const activeOfd = kkt.ofd_subscriptions?.find((o: any) => o.status !== 'expired')
           const fnDays = activeFn ? differenceInDays(parseISO(activeFn.expires_at), new Date()) : null
@@ -43,9 +60,9 @@ export default async function KktPage() {
                   <span className="font-medium">{kkt.brand} {kkt.model}</span>
                   <Badge variant="outline" className="text-xs">№ {kkt.serial_number}</Badge>
                 </div>
-                <span className="text-sm text-gray-500">{kkt.outlet?.name}</span>
+                <span className="text-sm text-gray-500">{outlet?.name}</span>
                 <span className="text-xs text-gray-400">
-                  {kkt.outlet?.legal_entity?.client?.name} · {kkt.outlet?.address}
+                  {clientName} · {outlet?.address}
                 </span>
               </div>
               <div className="flex flex-col items-end gap-1 text-xs">
