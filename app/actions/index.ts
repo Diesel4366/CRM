@@ -284,6 +284,7 @@ export async function updateOfdSubscriptionAction(formData: FormData) {
 export async function createCatalogItemAction(formData: FormData) {
   const supabase = await createClient()
   const db = supabase as any
+  const validityRaw = formData.get('validity_months') as string
   await db.from('catalog_items').insert({
     name: formData.get('name') as string,
     item_type: formData.get('item_type') as string,
@@ -291,6 +292,7 @@ export async function createCatalogItemAction(formData: FormData) {
     retail_price: Number(formData.get('retail_price')) || 0,
     unit: (formData.get('unit') as string) || 'шт',
     active: formData.get('active') === 'on',
+    validity_months: validityRaw ? Number(validityRaw) : null,
   })
 
   revalidatePath('/catalog')
@@ -301,6 +303,7 @@ export async function updateCatalogItemAction(formData: FormData) {
   const supabase = await createClient()
   const db = supabase as any
   const id = formData.get('id') as string
+  const validityRaw = formData.get('validity_months') as string
   await db.from('catalog_items').update({
     name: formData.get('name') as string,
     item_type: formData.get('item_type') as string,
@@ -308,6 +311,7 @@ export async function updateCatalogItemAction(formData: FormData) {
     retail_price: Number(formData.get('retail_price')) || 0,
     unit: (formData.get('unit') as string) || 'шт',
     active: formData.get('active') === 'on',
+    validity_months: validityRaw ? Number(validityRaw) : null,
   }).eq('id', id)
 
   revalidatePath('/catalog')

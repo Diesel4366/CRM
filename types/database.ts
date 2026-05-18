@@ -95,6 +95,7 @@ export interface CatalogItem {
   retail_price: number
   unit: string
   active: boolean
+  validity_months: number | null
   created_at: string
 }
 

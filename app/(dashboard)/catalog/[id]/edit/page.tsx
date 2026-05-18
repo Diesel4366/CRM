@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { updateCatalogItemAction, deleteCatalogItemAction } from '@/app/actions'
+import { updateCatalogItemAction } from '@/app/actions'
+import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button'
+import { deleteCatalogItemAction } from '@/app/actions'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { CatalogItem } from '@/types/database'
@@ -10,6 +12,8 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
   const { data: item } = await supabase.from('catalog_items').select('*').eq('id', id).single()
   if (!item) notFound()
   const ci = item as CatalogItem
+
+  const showValidity = ci.item_type === 'fn' || ci.item_type === 'ofd'
 
   return (
     <div className="space-y-6">
@@ -36,6 +40,7 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
             <label className="block text-sm font-medium text-gray-700">Тип *</label>
             <select
               name="item_type"
+              id="cat-type"
               required
               defaultValue={ci.item_type}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200 bg-white"
@@ -47,6 +52,20 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
               <option value="service">Услуга</option>
               <option value="other">Прочее</option>
             </select>
+          </div>
+
+          <div id="validity-block" className={`space-y-1${showValidity ? '' : ' hidden'}`}>
+            <label className="block text-sm font-medium text-gray-700">Срок службы, месяцев</label>
+            <input
+              name="validity_months"
+              id="cat-validity"
+              type="number"
+              min="1"
+              step="1"
+              defaultValue={ci.validity_months ?? ''}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+              placeholder="15, 36 для ФН / 12, 15 для ОФД"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -84,27 +103,15 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
           </div>
 
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="active"
-              id="active"
-              defaultChecked={ci.active}
-              className="rounded border-gray-300"
-            />
+            <input type="checkbox" name="active" id="active" defaultChecked={ci.active} className="rounded border-gray-300" />
             <label htmlFor="active" className="text-sm font-medium text-gray-700">Активна</label>
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-            >
+            <button type="submit" className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">
               Сохранить
             </button>
-            <Link
-              href="/catalog"
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
+            <Link href="/catalog" className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
               Отмена
             </Link>
           </div>
@@ -112,18 +119,28 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
 
         <div className="mt-8 border-t pt-6">
           <h3 className="mb-3 text-sm font-medium text-red-600">Опасная зона</h3>
-          <form action={deleteCatalogItemAction}>
-            <input type="hidden" name="id" value={id} />
-            <button
-              type="submit"
-              className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-              onClick={e => { if (!confirm('Удалить позицию каталога?')) e.preventDefault() }}
-            >
-              Удалить позицию
-            </button>
-          </form>
+          <ConfirmDeleteButton
+            action={deleteCatalogItemAction}
+            message="Удалить позицию каталога?"
+            inputs={{ id }}
+            className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            Удалить позицию
+          </ConfirmDeleteButton>
         </div>
       </div>
+
+      <script dangerouslySetInnerHTML={{ __html: `
+        var sel = document.getElementById('cat-type');
+        var block = document.getElementById('validity-block');
+        var inp = document.getElementById('cat-validity');
+        function toggleValidity() {
+          var show = sel.value === 'fn' || sel.value === 'ofd';
+          block.classList.toggle('hidden', !show);
+          if (!show) inp.value = '';
+        }
+        sel.addEventListener('change', toggleValidity);
+      `}} />
     </div>
   )
 }
