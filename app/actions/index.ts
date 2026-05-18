@@ -691,7 +691,7 @@ export async function saveSettingsAction(formData: FormData) {
     'korr_account', 'bank_account', 'vat',
     'telegram_bot_token', 'telegram_chat_id',
     'tinkoff_terminal_key', 'tinkoff_password',
-    'fuel_price',
+    'fuel_price', 'dadata_token',
   ]
 
   for (const key of keys) {

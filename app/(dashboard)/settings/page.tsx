@@ -144,6 +144,26 @@ export default async function SettingsPage() {
           </div>
         </div>
 
+        {/* Integrations */}
+        <div className="rounded-xl border bg-white p-6 space-y-4">
+          <h2 className="text-base font-semibold border-b pb-2">Интеграции</h2>
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">DaData API Token</label>
+            <input
+              name="dadata_token"
+              type="password"
+              defaultValue={settings.dadata_token ?? ''}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+              placeholder="Токен из личного кабинета dadata.ru"
+            />
+            <p className="text-xs text-gray-400">
+              Используется для автозаполнения реквизитов юрлиц по ИНН. Получить бесплатно на{' '}
+              <span className="font-medium">dadata.ru</span> (10 000 запросов/день).
+            </p>
+          </div>
+        </div>
+
         {/* Tinkoff */}
         <div className="rounded-xl border bg-white p-6 space-y-4">
           <h2 className="text-base font-semibold border-b pb-2">ТБанк (эквайринг)</h2>
