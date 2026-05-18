@@ -40,6 +40,20 @@ export default function NewCatalogItemPage() {
             </select>
           </div>
 
+          <div id="fuel-block" className="space-y-1 hidden">
+            <label className="block text-sm font-medium text-gray-700">Расход топлива, л/100 км</label>
+            <input
+              name="fuel_consumption"
+              id="cat-fuel"
+              type="number"
+              min="0"
+              step="0.1"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+              placeholder="8.5"
+            />
+            <p className="text-xs text-gray-400">Используется для расчёта ГСМ по пробегу в заказе</p>
+          </div>
+
           <div id="validity-block" className="space-y-1 hidden">
             <label className="block text-sm font-medium text-gray-700">Срок службы, месяцев</label>
             <input
@@ -108,13 +122,19 @@ export default function NewCatalogItemPage() {
         var sel = document.getElementById('cat-type');
         var block = document.getElementById('validity-block');
         var inp = document.getElementById('cat-validity');
-        function toggleValidity() {
-          var show = sel.value === 'fn' || sel.value === 'ofd';
-          block.classList.toggle('hidden', !show);
-          if (!show) inp.value = '';
+        var fuelBlock = document.getElementById('fuel-block');
+        var fuelInp = document.getElementById('cat-fuel');
+        function toggleFields() {
+          var t = sel.value;
+          var showValidity = t === 'fn' || t === 'ofd';
+          block.classList.toggle('hidden', !showValidity);
+          if (!showValidity) inp.value = '';
+          var showFuel = t === 'visit';
+          fuelBlock.classList.toggle('hidden', !showFuel);
+          if (!showFuel) fuelInp.value = '';
         }
-        sel.addEventListener('change', toggleValidity);
-        toggleValidity();
+        sel.addEventListener('change', toggleFields);
+        toggleFields();
       `}} />
     </div>
   )

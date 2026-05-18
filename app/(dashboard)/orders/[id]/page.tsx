@@ -1,3 +1,4 @@
+import React from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -7,7 +8,7 @@ import { ru } from 'date-fns/locale'
 import {
   updateOrderStatusAction, addOrderItemAction, deleteOrderItemAction,
   createDocumentAction, deleteOrderAction, updatePaymentStatusAction,
-  addBundleToOrderAction,
+  addBundleToOrderAction, updateOdometerAction,
 } from '@/app/actions'
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button'
 import { Trash2, FileText, Plus } from 'lucide-react'
@@ -151,27 +152,76 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             {items.map(item => {
               const itemTotal = item.unit_price * item.quantity
               const itemProfit = (item.unit_price - item.cost_price) * item.quantity
+              const hasFuelData = item.item_type === 'visit' && item.odometer_start != null && item.odometer_end != null && item.odometer_end > item.odometer_start
               return (
-                <tr key={item.id}>
-                  <td className="px-5 py-3">
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-xs text-gray-400">{itemTypeLabel[item.item_type]} · {item.unit}</p>
-                  </td>
-                  <td className="px-5 py-3 text-center">{item.quantity}</td>
-                  <td className="px-5 py-3 text-right">{item.unit_price.toLocaleString('ru')} ₽</td>
-                  <td className="px-5 py-3 text-right font-medium">{itemTotal.toLocaleString('ru')} ₽</td>
-                  <td className="px-5 py-3 text-right text-green-600">+{itemProfit.toLocaleString('ru')} ₽</td>
-                  <td className="px-5 py-3">
-                    <ConfirmDeleteButton
-                      action={deleteOrderItemAction}
-                      message="Удалить позицию?"
-                      inputs={{ id: item.id, order_id: id }}
-                      className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </ConfirmDeleteButton>
-                  </td>
-                </tr>
+                <React.Fragment key={item.id}>
+                  <tr>
+                    <td className="px-5 py-3">
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-xs text-gray-400">{itemTypeLabel[item.item_type]} · {item.unit}</p>
+                      {hasFuelData && (
+                        <p className="text-xs text-amber-600">
+                          ⛽ {item.odometer_end! - item.odometer_start!} км · ГСМ: {item.cost_price.toLocaleString('ru')} ₽
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-center">{item.quantity}</td>
+                    <td className="px-5 py-3 text-right">{item.unit_price.toLocaleString('ru')} ₽</td>
+                    <td className="px-5 py-3 text-right font-medium">{itemTotal.toLocaleString('ru')} ₽</td>
+                    <td className="px-5 py-3 text-right text-green-600">+{itemProfit.toLocaleString('ru')} ₽</td>
+                    <td className="px-5 py-3">
+                      <ConfirmDeleteButton
+                        action={deleteOrderItemAction}
+                        message="Удалить позицию?"
+                        inputs={{ id: item.id, order_id: id }}
+                        className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </ConfirmDeleteButton>
+                    </td>
+                  </tr>
+                  {item.item_type === 'visit' && (
+                    <tr className="bg-amber-50 border-b">
+                      <td colSpan={6} className="px-5 py-2">
+                        <form action={updateOdometerAction} className="flex flex-wrap items-end gap-3">
+                          <input type="hidden" name="id" value={item.id} />
+                          <input type="hidden" name="order_id" value={id} />
+                          <div className="space-y-0.5">
+                            <label className="block text-xs text-gray-500">Пробег нач., км</label>
+                            <input
+                              name="odometer_start"
+                              type="number"
+                              min="0"
+                              defaultValue={item.odometer_start ?? ''}
+                              className="w-28 rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-amber-400"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div className="space-y-0.5">
+                            <label className="block text-xs text-gray-500">Пробег кон., км</label>
+                            <input
+                              name="odometer_end"
+                              type="number"
+                              min="0"
+                              defaultValue={item.odometer_end ?? ''}
+                              className="w-28 rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-amber-400"
+                              placeholder="0"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            className="rounded border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50"
+                          >
+                            Сохранить пробег
+                          </button>
+                          {item.fuel_consumption != null && (
+                            <span className="text-xs text-gray-400">расход {item.fuel_consumption} л/100 км</span>
+                          )}
+                        </form>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               )
             })}
           </tbody>
@@ -202,6 +252,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <h2 className="mb-4 text-base font-semibold flex items-center gap-2"><Plus className="h-4 w-4" />Добавить позицию</h2>
         <form action={addOrderItemAction} className="space-y-3">
           <input type="hidden" name="order_id" value={id} />
+          <input type="hidden" name="fuel_consumption" id="item-fuel" value="" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
               <label className="block text-xs font-medium text-gray-600">Из каталога (заполнит поля)</label>
@@ -220,6 +271,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     data-cost={c.cost_price}
                     data-price={c.retail_price}
                     data-unit={c.unit}
+                    data-fuel={c.fuel_consumption ?? ''}
                   >
                     {c.name} — {c.retail_price.toLocaleString('ru')} ₽
                   </option>
@@ -376,11 +428,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               var c = document.getElementById('item-cost');
               var p = document.getElementById('item-price');
               var u = document.getElementById('item-unit');
+              var f = document.getElementById('item-fuel');
               if (n) n.value = opt.dataset.name || '';
               if (t) t.value = opt.dataset.type || 'service';
               if (c) c.value = opt.dataset.cost || '0';
               if (p) p.value = opt.dataset.price || '0';
               if (u) u.value = opt.dataset.unit || 'шт';
+              if (f) f.value = opt.dataset.fuel || '';
             }
           });
 

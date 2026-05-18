@@ -28,6 +28,7 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
   const components = (bundleComponents ?? []) as CatalogBundleItem[]
   const isBundle = ci.item_type === 'bundle'
   const showValidity = ci.item_type === 'fn' || ci.item_type === 'ofd'
+  const showFuel = ci.item_type === 'visit'
   const bundleCostTotal = isBundle
     ? components.reduce((s, c) => s + (Number(c.item?.cost_price) || 0) * c.quantity, 0)
     : null
@@ -74,6 +75,21 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
               <option value="other">Прочее</option>
               <option value="bundle">Комплект (несколько позиций)</option>
             </select>
+          </div>
+
+          <div id="fuel-block" className={`space-y-1${showFuel ? '' : ' hidden'}`}>
+            <label className="block text-sm font-medium text-gray-700">Расход топлива, л/100 км</label>
+            <input
+              name="fuel_consumption"
+              id="cat-fuel"
+              type="number"
+              min="0"
+              step="0.1"
+              defaultValue={ci.fuel_consumption ?? ''}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+              placeholder="8.5"
+            />
+            <p className="text-xs text-gray-400">Используется для расчёта ГСМ по пробегу в заказе</p>
           </div>
 
           <div id="validity-block" className={`space-y-1${showValidity ? '' : ' hidden'}`}>
@@ -161,12 +177,16 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
           var sel = document.getElementById('cat-type');
           var block = document.getElementById('validity-block');
           var inp = document.getElementById('cat-validity');
-          function toggleValidity() {
+          var fuelBlock = document.getElementById('fuel-block');
+          var fuelInp = document.getElementById('cat-fuel');
+          function toggleFields() {
             var t = sel.value;
             block.classList.toggle('hidden', t !== 'fn' && t !== 'ofd');
             if (t !== 'fn' && t !== 'ofd') inp.value = '';
+            fuelBlock.classList.toggle('hidden', t !== 'visit');
+            if (t !== 'visit') fuelInp.value = '';
           }
-          sel.addEventListener('change', toggleValidity);
+          sel.addEventListener('change', toggleFields);
         `}} />
       </div>
 

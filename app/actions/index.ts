@@ -285,6 +285,7 @@ export async function createCatalogItemAction(formData: FormData) {
   const supabase = await createClient()
   const db = supabase as any
   const validityRaw = formData.get('validity_months') as string
+  const fuelRaw = formData.get('fuel_consumption') as string
   await db.from('catalog_items').insert({
     name: formData.get('name') as string,
     item_type: formData.get('item_type') as string,
@@ -293,6 +294,7 @@ export async function createCatalogItemAction(formData: FormData) {
     unit: (formData.get('unit') as string) || 'шт',
     active: formData.get('active') === 'on',
     validity_months: validityRaw ? Number(validityRaw) : null,
+    fuel_consumption: fuelRaw ? Number(fuelRaw) : null,
   })
 
   revalidatePath('/catalog')
@@ -305,6 +307,7 @@ export async function updateCatalogItemAction(formData: FormData) {
   const id = formData.get('id') as string
   const itemType = formData.get('item_type') as string
   const validityRaw = formData.get('validity_months') as string
+  const fuelRaw = formData.get('fuel_consumption') as string
 
   // Для комплекта пересчитываем закупочную цену из компонентов
   let costPrice = Number(formData.get('cost_price')) || 0
@@ -328,6 +331,7 @@ export async function updateCatalogItemAction(formData: FormData) {
     unit: (formData.get('unit') as string) || 'шт',
     active: formData.get('active') === 'on',
     validity_months: validityRaw ? Number(validityRaw) : null,
+    fuel_consumption: fuelRaw ? Number(fuelRaw) : null,
   }).eq('id', id)
 
   revalidatePath('/catalog')
@@ -453,6 +457,7 @@ export async function addOrderItemAction(formData: FormData) {
   const costPrice = Number(formData.get('cost_price')) || 0
   const unitPrice = Number(formData.get('unit_price')) || 0
 
+  const fuelConsumptionRaw = formData.get('fuel_consumption') as string
   await db.from('order_items').insert({
     order_id: orderId,
     item_type: (formData.get('item_type') as string) || 'service',
@@ -463,6 +468,7 @@ export async function addOrderItemAction(formData: FormData) {
     unit_price: unitPrice,
     kkt_id: (formData.get('kkt_id') as string) || null,
     notes: (formData.get('notes') as string) || null,
+    fuel_consumption: fuelConsumptionRaw ? Number(fuelConsumptionRaw) : null,
   })
 
   await recalcOrderTotals(db, orderId)
@@ -594,6 +600,40 @@ export async function addBundleToOrderAction(formData: FormData) {
   redirect(`/orders/${orderId}`)
 }
 
+export async function updateOdometerAction(formData: FormData) {
+  const supabase = await createClient()
+  const db = supabase as any
+  const id = formData.get('id') as string
+  const orderId = formData.get('order_id') as string
+  const startRaw = formData.get('odometer_start') as string
+  const endRaw = formData.get('odometer_end') as string
+  const odometerStart = startRaw ? Number(startRaw) : null
+  const odometerEnd = endRaw ? Number(endRaw) : null
+
+  const [{ data: item }, { data: fuelSetting }] = await Promise.all([
+    db.from('order_items').select('fuel_consumption, quantity').eq('id', id).single(),
+    db.from('settings').select('value').eq('key', 'fuel_price').single(),
+  ])
+
+  const fuelConsumption = Number(item?.fuel_consumption) || 0
+  const fuelPrice = Number(fuelSetting?.value) || 0
+  let costPrice = 0
+  if (odometerStart != null && odometerEnd != null && odometerEnd > odometerStart && fuelConsumption > 0 && fuelPrice > 0) {
+    const distance = odometerEnd - odometerStart
+    costPrice = Math.round((distance / 100) * fuelConsumption * fuelPrice * 100) / 100
+  }
+
+  await db.from('order_items').update({
+    odometer_start: odometerStart,
+    odometer_end: odometerEnd,
+    cost_price: costPrice,
+  }).eq('id', id)
+
+  await recalcOrderTotals(db, orderId)
+  revalidatePath(`/orders/${orderId}`)
+  redirect(`/orders/${orderId}`)
+}
+
 // ─── KKT EVENTS ──────────────────────────────────────────────────────────────
 
 export async function createKktEventAction(formData: FormData) {
@@ -651,6 +691,7 @@ export async function saveSettingsAction(formData: FormData) {
     'korr_account', 'bank_account', 'vat',
     'telegram_bot_token', 'telegram_chat_id',
     'tinkoff_terminal_key', 'tinkoff_password',
+    'fuel_price',
   ]
 
   for (const key of keys) {

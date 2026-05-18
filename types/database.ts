@@ -96,6 +96,7 @@ export interface CatalogItem {
   unit: string
   active: boolean
   validity_months: number | null
+  fuel_consumption: number | null
   created_at: string
 }
 
@@ -129,6 +130,9 @@ export interface OrderItem {
   unit_price: number
   kkt_id: string | null
   notes: string | null
+  odometer_start: number | null
+  odometer_end: number | null
+  fuel_consumption: number | null
   created_at: string
 }
 
