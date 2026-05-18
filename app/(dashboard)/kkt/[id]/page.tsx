@@ -4,7 +4,9 @@ import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { differenceInDays, parseISO, format } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import { ChevronRight, Plus } from 'lucide-react'
+import { ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { deleteKktAction } from '@/app/actions'
+import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button'
 import type { KktEvent, Fn } from '@/types/database'
 
 const kktStatusLabel: Record<string, string> = {
@@ -121,6 +123,14 @@ export default async function KktDetailPage({ params }: { params: Promise<{ id: 
               {outlet?.address && <span>Адрес: {outlet.address}</span>}
             </div>
           </div>
+          <ConfirmDeleteButton
+            action={deleteKktAction}
+            message="Удалить кассу? Все связанные данные (ФН, события) будут удалены."
+            inputs={{ id }}
+            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-3 w-3" /> Удалить
+          </ConfirmDeleteButton>
         </div>
       </div>
 
