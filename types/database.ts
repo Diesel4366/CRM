@@ -129,6 +129,7 @@ export interface OrderItem {
   cost_price: number
   unit_price: number
   kkt_id: string | null
+  outlet_id: string | null
   notes: string | null
   odometer_start: number | null
   odometer_end: number | null

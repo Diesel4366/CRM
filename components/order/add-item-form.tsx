@@ -4,9 +4,13 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import type { CatalogItem } from '@/types/database'
 
+type OutletOption = { id: string; name: string; address: string | null; legal_entity_name: string }
+
 type Props = {
   orderId: string
   catalogItems: CatalogItem[]
+  outlets: OutletOption[]
+  defaultOutletId?: string | null
   addOrderItemAction: (fd: FormData) => Promise<void>
   addBundleToOrderAction: (fd: FormData) => Promise<void>
 }
@@ -20,13 +24,14 @@ const itemTypeOptions = [
   { value: 'other', label: 'Прочее' },
 ]
 
-export function AddItemForm({ orderId, catalogItems, addOrderItemAction, addBundleToOrderAction }: Props) {
+export function AddItemForm({ orderId, catalogItems, outlets, defaultOutletId, addOrderItemAction, addBundleToOrderAction }: Props) {
   const [name, setName] = useState('')
   const [itemType, setItemType] = useState('service')
   const [unit, setUnit] = useState('шт')
   const [costPrice, setCostPrice] = useState('0')
   const [unitPrice, setUnitPrice] = useState('0')
   const [fuelConsumption, setFuelConsumption] = useState('')
+  const [outletId, setOutletId] = useState(defaultOutletId ?? '')
   const [selectedBundle, setSelectedBundle] = useState<{ id: string; name: string } | null>(null)
 
   const regularItems = catalogItems.filter(c => c.item_type !== 'bundle')
@@ -99,10 +104,29 @@ export function AddItemForm({ orderId, catalogItems, addOrderItemAction, addBund
         <form action={addBundleToOrderAction} className="space-y-3">
           <input type="hidden" name="order_id" value={orderId} />
           <input type="hidden" name="bundle_id" value={selectedBundle.id} />
+          {outletId && <input type="hidden" name="outlet_id" value={outletId} />}
           <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
             <p className="font-medium text-blue-800">{selectedBundle.name}</p>
             <p className="text-xs text-blue-600 mt-0.5">Все позиции комплекта будут добавлены в заказ</p>
           </div>
+          {outlets.length > 0 && (
+            <div className="space-y-1 max-w-sm">
+              <label className="block text-xs font-medium text-gray-600">Торговая точка</label>
+              <select
+                name="outlet_id"
+                value={outletId}
+                onChange={e => setOutletId(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 bg-white"
+              >
+                <option value="">— Не указана —</option>
+                {outlets.map(o => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}{o.address ? ` (${o.address})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex gap-3">
             <button
               type="submit"
@@ -198,6 +222,25 @@ export function AddItemForm({ orderId, catalogItems, addOrderItemAction, addBund
               />
             </div>
           </div>
+
+          {outlets.length > 0 && (
+            <div className="space-y-1 max-w-sm">
+              <label className="block text-xs font-medium text-gray-600">Торговая точка</label>
+              <select
+                name="outlet_id"
+                value={outletId}
+                onChange={e => setOutletId(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 bg-white"
+              >
+                <option value="">— Не указана —</option>
+                {outlets.map(o => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}{o.address ? ` (${o.address})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <button
             type="submit"

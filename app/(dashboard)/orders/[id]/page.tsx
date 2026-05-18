@@ -57,7 +57,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   if (!order) notFound()
 
   const ordAny = order as any
-  const [clientRes, legalRes, outletRes] = await Promise.all([
+  const [clientRes, legalRes, outletRes, clientLesRes] = await Promise.all([
     ordAny.client_id
       ? supabase.from('clients').select('id, name, phone').eq('id', ordAny.client_id).single()
       : { data: null },
@@ -67,6 +67,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     ordAny.outlet_id
       ? supabase.from('outlets').select('name, address').eq('id', ordAny.outlet_id).single()
       : { data: null },
+    ordAny.client_id
+      ? supabase.from('legal_entities').select('id, name, outlets(id, name, address)').eq('client_id', ordAny.client_id)
+      : { data: [] },
   ])
 
   const items = ((order as any).order_items ?? []) as OrderItem[]
@@ -74,6 +77,23 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const client = clientRes.data as any
   const legalEntity = legalRes.data as any
   const outlet = outletRes.data as any
+
+  // Flatten outlets for the add-item form
+  const clientOutlets: { id: string; name: string; address: string | null; legal_entity_name: string }[] = []
+  for (const le of (clientLesRes.data ?? []) as any[]) {
+    for (const o of le.outlets ?? []) {
+      clientOutlets.push({ id: o.id, name: o.name, address: o.address, legal_entity_name: le.name })
+    }
+  }
+
+  // Map outlet names for displaying in item rows
+  const itemOutletIds = [...new Set(items.map(i => (i as any).outlet_id).filter(Boolean))]
+  const { data: itemOutletsList } = itemOutletIds.length
+    ? await supabase.from('outlets').select('id, name').in('id', itemOutletIds)
+    : { data: [] }
+  const outletNameMap: Record<string, string> = Object.fromEntries(
+    (itemOutletsList ?? []).map((o: any) => [o.id, o.name])
+  )
 
   const totalPrice = items.reduce((s, i) => s + i.unit_price * i.quantity, 0)
   const totalCost = items.reduce((s, i) => s + i.cost_price * i.quantity, 0)
@@ -166,6 +186,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     <td className="px-5 py-3">
                       <p className="font-medium">{item.name}</p>
                       <p className="text-xs text-gray-400">{itemTypeLabel[item.item_type]} · {item.unit}</p>
+                      {(item as any).outlet_id && (
+                        <p className="text-xs text-blue-500">📍 {outletNameMap[(item as any).outlet_id]}</p>
+                      )}
                       {hasFuelData && (
                         <p className="text-xs text-amber-600">
                           ⛽ {item.odometer_end! - item.odometer_start!} км · ГСМ: {item.cost_price.toLocaleString('ru')} ₽
@@ -257,6 +280,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       <AddItemForm
         orderId={id}
         catalogItems={(catalogItems as CatalogItem[]) ?? []}
+        outlets={clientOutlets}
+        defaultOutletId={(order as any).outlet_id ?? null}
         addOrderItemAction={addOrderItemAction}
         addBundleToOrderAction={addBundleToOrderAction}
       />

@@ -467,6 +467,7 @@ export async function addOrderItemAction(formData: FormData) {
     cost_price: costPrice,
     unit_price: unitPrice,
     kkt_id: (formData.get('kkt_id') as string) || null,
+    outlet_id: (formData.get('outlet_id') as string) || null,
     notes: (formData.get('notes') as string) || null,
     fuel_consumption: fuelConsumptionRaw ? Number(fuelConsumptionRaw) : null,
   })
@@ -565,6 +566,7 @@ export async function addBundleToOrderAction(formData: FormData) {
     redirect(`/orders/${orderId}`)
   }
 
+  const outletId = (formData.get('outlet_id') as string) || null
   const rows = (components as any[]).map(c => ({
     order_id: orderId,
     item_type: c.item.item_type === 'bundle' ? 'service' : c.item.item_type,
@@ -573,6 +575,7 @@ export async function addBundleToOrderAction(formData: FormData) {
     unit: c.item.unit || 'шт',
     cost_price: c.item.cost_price ?? 0,
     unit_price: c.item.retail_price ?? 0,
+    outlet_id: outletId,
   }))
 
   // Если у комплекта задана цена и она отличается от суммы компонентов —
@@ -591,6 +594,7 @@ export async function addBundleToOrderAction(formData: FormData) {
       unit: '—',
       cost_price: 0,
       unit_price: diff,
+      outlet_id: outletId,
     })
   }
 
