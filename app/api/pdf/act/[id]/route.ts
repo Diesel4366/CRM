@@ -2,49 +2,49 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { format, parseISO } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import type { OrderItem } from '@/types/database'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
 
   const [{ data: order }, { data: settings }] = await Promise.all([
-    supabase.from('orders').select(`
-      *, client(name, phone, email),
-      legal_entity:legal_entities(name, inn, kpp, legal_address, director),
-      outlet:outlets(name, address),
-      order_items(*),
-      documents(doc_number, doc_type, issued_at)
-    `).eq('id', id).single(),
+    supabase.from('orders').select('*, order_items(*), documents(doc_number, doc_type, issued_at)').eq('id', id).single(),
     supabase.from('settings').select('*'),
   ])
 
   if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const ordAny = order as any
+  const [clientRes, legalRes] = await Promise.all([
+    ordAny.client_id
+      ? supabase.from('clients').select('name, phone').eq('id', ordAny.client_id).single()
+      : { data: null },
+    ordAny.legal_entity_id
+      ? supabase.from('legal_entities').select('name, inn, kpp, legal_address, director').eq('id', ordAny.legal_entity_id).single()
+      : { data: null },
+  ])
 
   const settingsMap: Record<string, string> = {}
   for (const s of ((settings ?? []) as { key: string; value: string | null }[])) {
     settingsMap[s.key] = s.value ?? ''
   }
 
-  const actDocs = ((order as any).documents ?? []).filter((d: any) => d.doc_type === 'act')
-  const docNumber = actDocs[0]?.doc_number ?? `АКТ-${(order as any).order_number}`
+  const actDocs = (ordAny.documents ?? []).filter((d: any) => d.doc_type === 'act')
+  const docNumber = actDocs[0]?.doc_number ?? `АКТ-${ordAny.order_number}`
   const issuedAt = actDocs[0]?.issued_at
     ? format(parseISO(actDocs[0].issued_at), 'd MMMM yyyy', { locale: ru })
     : format(new Date(), 'd MMMM yyyy', { locale: ru })
 
-  const items = ((order as any).order_items ?? []) as OrderItem[]
-  const totalPrice = (order as any).total_price ?? items.reduce((s, i) => s + i.unit_price * i.quantity, 0)
-  const completedAt = (order as any).completed_at
-    ? format(parseISO((order as any).completed_at), 'd MMMM yyyy', { locale: ru })
-    : issuedAt
+  const items = (ordAny.order_items ?? []) as any[]
+  const totalPrice = Number(ordAny.total_price) || items.reduce((s: number, i: any) => s + Number(i.unit_price) * Number(i.quantity), 0)
 
-  const companyName = settingsMap.company_name || ''
+  const companyName = settingsMap.company_name || 'ИП'
   const inn = settingsMap.inn || ''
   const address = settingsMap.address || ''
   const vat = settingsMap.vat || 'Без НДС'
 
-  const client = (order as any).client
-  const legalEntity = (order as any).legal_entity
+  const client = clientRes.data as any
+  const legalEntity = legalRes.data as any
 
   const html = `<!DOCTYPE html>
 <html lang="ru">
@@ -66,7 +66,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   .total-row td { font-weight: bold; background: #f9f9f9; }
   .conclusion { margin: 16px 0; padding: 12px; border: 1px solid #ccc; background: #fafafa; }
   .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 32px; }
-  .sig-block { }
   .sig-line { border-top: 1px solid #000; padding-top: 4px; font-size: 10px; margin-top: 32px; }
   @media print {
     @page { size: A4; margin: 15mm; }
@@ -117,14 +116,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     </tr>
   </thead>
   <tbody>
-    ${items.map((item, i) => `
+    ${items.map((item: any, i: number) => `
     <tr>
       <td class="text-right">${i + 1}</td>
       <td>${item.name}</td>
       <td class="text-right">${item.quantity}</td>
       <td>${item.unit}</td>
-      <td class="text-right">${item.unit_price.toLocaleString('ru')}</td>
-      <td class="text-right">${(item.unit_price * item.quantity).toLocaleString('ru')}</td>
+      <td class="text-right">${Number(item.unit_price).toLocaleString('ru')}</td>
+      <td class="text-right">${(Number(item.unit_price) * Number(item.quantity)).toLocaleString('ru')}</td>
     </tr>`).join('')}
   </tbody>
   <tfoot>
@@ -149,12 +148,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 </div>
 
 <div class="signatures">
-  <div class="sig-block">
+  <div>
     <p style="font-weight:bold; font-size:11px">ИСПОЛНИТЕЛЬ</p>
     <p style="font-size:10px; margin-top:4px">${companyName}</p>
     <div class="sig-line">подпись / Ступин А.А.</div>
   </div>
-  <div class="sig-block">
+  <div>
     <p style="font-weight:bold; font-size:11px">ЗАКАЗЧИК</p>
     <p style="font-size:10px; margin-top:4px">${legalEntity?.name ?? client?.name ?? ''}</p>
     <div class="sig-line">подпись / ${legalEntity?.director ?? client?.name ?? ''}</div>
@@ -166,8 +165,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 </html>`
 
   return new NextResponse(html, {
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-    },
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
   })
 }
