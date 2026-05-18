@@ -493,7 +493,7 @@ export async function deleteOrderItemAction(formData: FormData) {
 async function recalcBundleCostPrice(db: any, bundleId: string) {
   const { data: components } = await db
     .from('catalog_bundle_items')
-    .select('quantity, item:catalog_items(cost_price)')
+    .select('quantity, item:item_id(cost_price)')
     .eq('bundle_id', bundleId)
   const totalCost = (components ?? []).reduce(
     (sum: number, c: any) => sum + c.quantity * (c.item?.cost_price ?? 0),
