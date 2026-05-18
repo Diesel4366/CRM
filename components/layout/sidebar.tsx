@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, Monitor, ClipboardList,
-  BookOpen, Bell, LogOut
+  BookOpen, Bell, LogOut, Settings
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -17,6 +17,7 @@ const nav = [
   { href: '/orders',   label: 'Заказы',   icon: ClipboardList },
   { href: '/catalog',  label: 'Каталог',  icon: BookOpen },
   { href: '/alerts',   label: 'Алерты',   icon: Bell },
+  { href: '/settings', label: 'Настройки', icon: Settings },
 ]
 
 export function Sidebar() {
