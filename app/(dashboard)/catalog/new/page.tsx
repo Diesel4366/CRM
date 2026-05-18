@@ -36,6 +36,7 @@ export default function NewCatalogItemPage() {
               <option value="visit">Выезд</option>
               <option value="service">Услуга</option>
               <option value="other">Прочее</option>
+              <option value="bundle">Комплект (несколько позиций)</option>
             </select>
           </div>
 

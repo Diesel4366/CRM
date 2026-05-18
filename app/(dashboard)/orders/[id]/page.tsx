@@ -6,7 +6,8 @@ import { format, parseISO } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import {
   updateOrderStatusAction, addOrderItemAction, deleteOrderItemAction,
-  createDocumentAction, deleteOrderAction, updatePaymentStatusAction
+  createDocumentAction, deleteOrderAction, updatePaymentStatusAction,
+  addBundleToOrderAction,
 } from '@/app/actions'
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button'
 import { Trash2, FileText, Plus } from 'lucide-react'
@@ -206,13 +207,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <label className="block text-xs font-medium text-gray-600">Из каталога (заполнит поля)</label>
               <select
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 bg-white"
-                onChange={e => {
-                  // This is a display-only selector, values are pre-filled via catalog
-                }}
+                onChange={() => {}}
                 id="catalog-select"
               >
                 <option value="">Выберите из каталога или введите вручную</option>
-                {(catalogItems as CatalogItem[] ?? []).map(c => (
+                {(catalogItems as CatalogItem[] ?? []).filter(c => c.item_type !== 'bundle').map(c => (
                   <option
                     key={c.id}
                     value={c.id}
@@ -225,9 +224,23 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     {c.name} — {c.retail_price.toLocaleString('ru')} ₽
                   </option>
                 ))}
+                {(catalogItems as CatalogItem[] ?? []).some(c => c.item_type === 'bundle') && (
+                  <option disabled>── Комплекты ──</option>
+                )}
+                {(catalogItems as CatalogItem[] ?? []).filter(c => c.item_type === 'bundle').map(c => (
+                  <option
+                    key={c.id}
+                    value={c.id}
+                    data-bundle="true"
+                    data-name={c.name}
+                  >
+                    📦 {c.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
+          <div id="manual-fields">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="space-y-1 sm:col-span-2">
               <label className="block text-xs font-medium text-gray-600">Наименование *</label>
@@ -304,7 +317,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               />
             </div>
           </div>
+          </div>{/* end manual-fields */}
           <button
+            id="item-submit-btn"
             type="submit"
             className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
           >
@@ -312,21 +327,68 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </button>
         </form>
 
+        {/* Bundle add form (hidden until bundle selected) */}
+        <form id="bundle-form" action={addBundleToOrderAction} className="hidden mt-3">
+          <input type="hidden" name="order_id" value={id} />
+          <input type="hidden" name="bundle_id" id="bundle-id-input" />
+          <div id="bundle-info" className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
+            <p className="font-medium text-blue-800" id="bundle-name-label"></p>
+            <p className="text-xs text-blue-600 mt-0.5">Все позиции комплекта будут добавлены в заказ</p>
+          </div>
+          <div className="flex gap-3">
+            <button type="submit" className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800">
+              Добавить комплект
+            </button>
+            <button type="button" id="bundle-cancel" className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Отмена
+            </button>
+          </div>
+        </form>
+
         {/* Client-side catalog fill script */}
         <script dangerouslySetInnerHTML={{ __html: `
+          var manualFields = document.getElementById('manual-fields');
+          var bundleForm = document.getElementById('bundle-form');
+          var submitBtn = document.getElementById('item-submit-btn');
+
           document.getElementById('catalog-select')?.addEventListener('change', function() {
-            const opt = this.options[this.selectedIndex];
-            if (!opt.value) return;
-            const n = document.getElementById('item-name');
-            const t = document.getElementById('item-type');
-            const c = document.getElementById('item-cost');
-            const p = document.getElementById('item-price');
-            const u = document.getElementById('item-unit');
-            if (n) n.value = opt.dataset.name || '';
-            if (t) t.value = opt.dataset.type || 'service';
-            if (c) c.value = opt.dataset.cost || '0';
-            if (p) p.value = opt.dataset.price || '0';
-            if (u) u.value = opt.dataset.unit || 'шт';
+            var opt = this.options[this.selectedIndex];
+            if (!opt.value) {
+              if (manualFields) manualFields.style.display = '';
+              if (bundleForm) bundleForm.classList.add('hidden');
+              if (submitBtn) submitBtn.style.display = '';
+              return;
+            }
+            if (opt.dataset.bundle === 'true') {
+              if (manualFields) manualFields.style.display = 'none';
+              if (submitBtn) submitBtn.style.display = 'none';
+              if (bundleForm) {
+                bundleForm.classList.remove('hidden');
+                document.getElementById('bundle-id-input').value = opt.value;
+                document.getElementById('bundle-name-label').textContent = opt.dataset.name || '';
+              }
+            } else {
+              if (manualFields) manualFields.style.display = '';
+              if (bundleForm) bundleForm.classList.add('hidden');
+              if (submitBtn) submitBtn.style.display = '';
+              var n = document.getElementById('item-name');
+              var t = document.getElementById('item-type');
+              var c = document.getElementById('item-cost');
+              var p = document.getElementById('item-price');
+              var u = document.getElementById('item-unit');
+              if (n) n.value = opt.dataset.name || '';
+              if (t) t.value = opt.dataset.type || 'service';
+              if (c) c.value = opt.dataset.cost || '0';
+              if (p) p.value = opt.dataset.price || '0';
+              if (u) u.value = opt.dataset.unit || 'шт';
+            }
+          });
+
+          document.getElementById('bundle-cancel')?.addEventListener('click', function() {
+            document.getElementById('catalog-select').value = '';
+            if (bundleForm) bundleForm.classList.add('hidden');
+            if (manualFields) manualFields.style.display = '';
+            if (submitBtn) submitBtn.style.display = '';
           });
         `}} />
       </div>

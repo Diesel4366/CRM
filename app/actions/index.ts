@@ -488,6 +488,61 @@ export async function deleteOrderItemAction(formData: FormData) {
   redirect(`/orders/${orderId}`)
 }
 
+// ─── BUNDLE COMPONENTS ───────────────────────────────────────────────────────
+
+export async function addBundleComponentAction(formData: FormData) {
+  const supabase = await createClient()
+  const db = supabase as any
+  const bundleId = formData.get('bundle_id') as string
+  await db.from('catalog_bundle_items').insert({
+    bundle_id: bundleId,
+    item_id: formData.get('item_id') as string,
+    quantity: Number(formData.get('quantity')) || 1,
+  })
+  revalidatePath(`/catalog/${bundleId}/edit`)
+}
+
+export async function removeBundleComponentAction(formData: FormData) {
+  const supabase = await createClient()
+  const db = supabase as any
+  const id = formData.get('id') as string
+  const bundleId = formData.get('bundle_id') as string
+  await db.from('catalog_bundle_items').delete().eq('id', id)
+  revalidatePath(`/catalog/${bundleId}/edit`)
+}
+
+export async function addBundleToOrderAction(formData: FormData) {
+  const supabase = await createClient()
+  const db = supabase as any
+  const orderId = formData.get('order_id') as string
+  const bundleId = formData.get('bundle_id') as string
+
+  const { data: components } = await db
+    .from('catalog_bundle_items')
+    .select('quantity, item:item_id(name, item_type, cost_price, retail_price, unit)')
+    .eq('bundle_id', bundleId)
+
+  if (!components?.length) {
+    revalidatePath(`/orders/${orderId}`)
+    redirect(`/orders/${orderId}`)
+  }
+
+  const rows = (components as any[]).map(c => ({
+    order_id: orderId,
+    item_type: c.item.item_type === 'bundle' ? 'service' : c.item.item_type,
+    name: c.item.name,
+    quantity: c.quantity,
+    unit: c.item.unit || 'шт',
+    cost_price: c.item.cost_price ?? 0,
+    unit_price: c.item.retail_price ?? 0,
+  }))
+
+  await db.from('order_items').insert(rows)
+  await recalcOrderTotals(db, orderId)
+  revalidatePath(`/orders/${orderId}`)
+  redirect(`/orders/${orderId}`)
+}
+
 // ─── KKT EVENTS ──────────────────────────────────────────────────────────────
 
 export async function createKktEventAction(formData: FormData) {

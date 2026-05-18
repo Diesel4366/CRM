@@ -7,7 +7,7 @@ import type { CatalogItem, ItemType } from '@/types/database'
 
 const typeLabel: Record<ItemType, string> = {
   kkt: 'Касса', fn: 'ФН', ofd: 'ОФД',
-  visit: 'Выезд', service: 'Услуга', other: 'Прочее',
+  visit: 'Выезд', service: 'Услуга', other: 'Прочее', bundle: 'Комплект',
 }
 
 export default async function CatalogPage() {

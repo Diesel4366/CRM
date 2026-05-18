@@ -7,7 +7,7 @@ export type OfdStatus = 'active' | 'expiring_soon' | 'expired'
 export type OrderStatus = 'draft' | 'confirmed' | 'in_progress' | 'done' | 'cancelled'
 export type PaymentStatus = 'unpaid' | 'invoiced' | 'paid' | 'partially_paid'
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'tinkoff'
-export type ItemType = 'kkt' | 'fn' | 'ofd' | 'visit' | 'service' | 'other'
+export type ItemType = 'kkt' | 'fn' | 'ofd' | 'visit' | 'service' | 'other' | 'bundle'
 export type EventType = 'fn_replace' | 'registration' | 're_registration' | 'firmware' | 'repair' | 'ofd_connect' | 'ofd_renew'
 export type DocType = 'invoice' | 'act' | 'upd'
 
@@ -163,6 +163,14 @@ export interface Setting {
   key: string
   value: string | null
   updated_at: string
+}
+
+export interface CatalogBundleItem {
+  id: string
+  bundle_id: string
+  item_id: string
+  quantity: number
+  item?: CatalogItem
 }
 
 // Relations (joined queries)
