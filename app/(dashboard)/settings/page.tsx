@@ -23,7 +23,7 @@ export default async function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700">Наименование организации</label>
             <input
               name="company_name"
-              defaultValue={settings.company_name ?? 'ИП СТУПИН АЛЕКСАНДР АЛЕКСЕЕВИЧ'}
+              defaultValue={settings.company_name ?? ''}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
             />
           </div>
@@ -33,7 +33,7 @@ export default async function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700">ИНН</label>
               <input
                 name="inn"
-                defaultValue={settings.inn ?? '526224380814'}
+                defaultValue={settings.inn ?? ''}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
               />
             </div>
@@ -51,7 +51,7 @@ export default async function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700">Юридический адрес</label>
             <input
               name="address"
-              defaultValue={settings.address ?? '603146, НИЖЕГОРОДСКАЯ ОБЛ, Г НИЖНИЙ НОВГОРОД, УЛ БЕКЕТОВА, Д 45, КВ 19'}
+              defaultValue={settings.address ?? ''}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
             />
           </div>
@@ -65,7 +65,7 @@ export default async function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700">Наименование банка</label>
             <input
               name="bank_name"
-              defaultValue={settings.bank_name ?? 'АО «ТБанк»'}
+              defaultValue={settings.bank_name ?? ''}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
             />
           </div>
@@ -75,7 +75,7 @@ export default async function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700">БИК</label>
               <input
                 name="bik"
-                defaultValue={settings.bik ?? '044525974'}
+                defaultValue={settings.bik ?? ''}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
               />
             </div>
@@ -83,7 +83,7 @@ export default async function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700">Расчётный счёт</label>
               <input
                 name="bank_account"
-                defaultValue={settings.bank_account ?? '40802810600002142149'}
+                defaultValue={settings.bank_account ?? ''}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
               />
             </div>
@@ -93,7 +93,7 @@ export default async function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700">Корреспондентский счёт</label>
             <input
               name="korr_account"
-              defaultValue={settings.korr_account ?? '30101810145250000974'}
+              defaultValue={settings.korr_account ?? ''}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
             />
           </div>

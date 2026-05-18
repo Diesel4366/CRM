@@ -8,6 +8,7 @@ import {
   updateOrderStatusAction, addOrderItemAction, deleteOrderItemAction,
   createDocumentAction, deleteOrderAction, updatePaymentStatusAction
 } from '@/app/actions'
+import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button'
 import { Trash2, FileText, Plus } from 'lucide-react'
 import type { OrderItem, CatalogItem } from '@/types/database'
 
@@ -114,16 +115,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             </form>
           )}
           {(order as any).status === 'draft' && (
-            <form action={deleteOrderAction}>
-              <input type="hidden" name="id" value={id} />
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-                onClick={e => { if (!confirm('Удалить заказ?')) e.preventDefault() }}
-              >
-                <Trash2 className="h-3 w-3" /> Удалить
-              </button>
-            </form>
+            <ConfirmDeleteButton
+              action={deleteOrderAction}
+              message="Удалить заказ?"
+              inputs={{ id }}
+              className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="h-3 w-3" /> Удалить
+            </ConfirmDeleteButton>
           )}
         </div>
       </div>
@@ -162,17 +161,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <td className="px-5 py-3 text-right font-medium">{itemTotal.toLocaleString('ru')} ₽</td>
                   <td className="px-5 py-3 text-right text-green-600">+{itemProfit.toLocaleString('ru')} ₽</td>
                   <td className="px-5 py-3">
-                    <form action={deleteOrderItemAction}>
-                      <input type="hidden" name="id" value={item.id} />
-                      <input type="hidden" name="order_id" value={id} />
-                      <button
-                        type="submit"
-                        className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500"
-                        onClick={e => { if (!confirm('Удалить позицию?')) e.preventDefault() }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deleteOrderItemAction}
+                      message="Удалить позицию?"
+                      inputs={{ id: item.id, order_id: id }}
+                      className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </ConfirmDeleteButton>
                   </td>
                 </tr>
               )

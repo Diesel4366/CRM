@@ -3,7 +3,13 @@ import { NextResponse } from 'next/server'
 import { differenceInDays, parseISO, addDays, format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
-export async function GET() {
+export async function GET(req: Request) {
+  const authHeader = req.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const supabase = await createClient()
 
   const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd')

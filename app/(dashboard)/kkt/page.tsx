@@ -26,7 +26,7 @@ export default async function KktPage() {
         )}
         {kktList?.map((kkt: any) => {
           const activeFn = kkt.fn?.find((f: any) => f.status !== 'replaced')
-          const activeOfd = kkt.ofd_subscriptions?.[0]
+          const activeOfd = kkt.ofd_subscriptions?.find((o: any) => o.status !== 'expired')
           const fnDays = activeFn ? differenceInDays(parseISO(activeFn.expires_at), new Date()) : null
           const ofdDays = activeOfd ? differenceInDays(parseISO(activeOfd.expires_at), new Date()) : null
           const hasAlert = (fnDays !== null && fnDays <= 60) || (ofdDays !== null && ofdDays <= 30)

@@ -38,13 +38,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const items = ((order as any).order_items ?? []) as OrderItem[]
   const totalPrice = (order as any).total_price ?? items.reduce((s, i) => s + i.unit_price * i.quantity, 0)
 
-  const companyName = settingsMap.company_name || 'ИП СТУПИН АЛЕКСАНДР АЛЕКСЕЕВИЧ'
-  const inn = settingsMap.inn || '526224380814'
-  const address = settingsMap.address || '603146, Нижегородская обл., г. Нижний Новгород, ул. Бекетова, д. 45, кв. 19'
-  const bankName = settingsMap.bank_name || 'АО «ТБанк»'
-  const bik = settingsMap.bik || '044525974'
-  const bankAccount = settingsMap.bank_account || '40802810600002142149'
-  const korrAccount = settingsMap.korr_account || '30101810145250000974'
+  const companyName = settingsMap.company_name || ''
+  const inn = settingsMap.inn || ''
+  const address = settingsMap.address || ''
+  const bankName = settingsMap.bank_name || ''
+  const bik = settingsMap.bik || ''
+  const bankAccount = settingsMap.bank_account || ''
+  const korrAccount = settingsMap.korr_account || ''
   const vat = settingsMap.vat || 'Без НДС'
 
   const client = (order as any).client

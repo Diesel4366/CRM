@@ -38,9 +38,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     ? format(parseISO((order as any).completed_at), 'd MMMM yyyy', { locale: ru })
     : issuedAt
 
-  const companyName = settingsMap.company_name || 'ИП СТУПИН АЛЕКСАНДР АЛЕКСЕЕВИЧ'
-  const inn = settingsMap.inn || '526224380814'
-  const address = settingsMap.address || '603146, Нижегородская обл., г. Нижний Новгород, ул. Бекетова, д. 45, кв. 19'
+  const companyName = settingsMap.company_name || ''
+  const inn = settingsMap.inn || ''
+  const address = settingsMap.address || ''
   const vat = settingsMap.vat || 'Без НДС'
 
   const client = (order as any).client

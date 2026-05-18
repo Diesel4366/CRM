@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { deleteClientAction, deleteLegalEntityAction, deleteOutletAction } from '@/app/actions'
+import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button'
 import { Pencil, Trash2, Plus, Monitor, MapPin, Phone, Building2, ChevronRight } from 'lucide-react'
 
 const kktStatusLabel: Record<string, string> = {
@@ -65,16 +66,14 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
           >
             <Pencil className="h-3 w-3" /> Изменить
           </Link>
-          <form action={deleteClientAction}>
-            <input type="hidden" name="id" value={id} />
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-              onClick={e => { if (!confirm('Удалить клиента?')) e.preventDefault() }}
-            >
-              <Trash2 className="h-3 w-3" /> Удалить
-            </button>
-          </form>
+          <ConfirmDeleteButton
+            action={deleteClientAction}
+            message="Удалить клиента?"
+            inputs={{ id }}
+            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-3 w-3" /> Удалить
+          </ConfirmDeleteButton>
         </div>
       </div>
 
@@ -117,17 +116,14 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </Link>
-                  <form action={deleteLegalEntityAction}>
-                    <input type="hidden" name="id" value={le.id} />
-                    <input type="hidden" name="client_id" value={id} />
-                    <button
-                      type="submit"
-                      className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
-                      onClick={e => { if (!confirm('Удалить юр. лицо?')) e.preventDefault() }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </form>
+                  <ConfirmDeleteButton
+                    action={deleteLegalEntityAction}
+                    message="Удалить юр. лицо?"
+                    inputs={{ id: le.id, client_id: id }}
+                    className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </ConfirmDeleteButton>
                 </div>
               </div>
 
@@ -167,17 +163,14 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
                           >
                             <Pencil className="h-3 w-3" />
                           </Link>
-                          <form action={deleteOutletAction}>
-                            <input type="hidden" name="id" value={outlet.id} />
-                            <input type="hidden" name="client_id" value={id} />
-                            <button
-                              type="submit"
-                              className="rounded p-1 text-gray-400 hover:bg-white hover:text-red-500"
-                              onClick={e => { if (!confirm('Удалить торговую точку?')) e.preventDefault() }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </form>
+                          <ConfirmDeleteButton
+                            action={deleteOutletAction}
+                            message="Удалить торговую точку?"
+                            inputs={{ id: outlet.id, client_id: id }}
+                            className="rounded p-1 text-gray-400 hover:bg-white hover:text-red-500"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </ConfirmDeleteButton>
                         </div>
                       </div>
 

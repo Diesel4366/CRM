@@ -31,9 +31,12 @@ export default async function OrdersPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Заказы</h1>
-        
-          <Link href="/orders/new"><Plus className="mr-2 h-4 w-4" />Новый заказ</Link>
-        
+        <Link
+          href="/orders/new"
+          className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
+        >
+          <Plus className="mr-2 h-4 w-4" />Новый заказ
+        </Link>
       </div>
 
       <div className="divide-y rounded-xl border bg-white">

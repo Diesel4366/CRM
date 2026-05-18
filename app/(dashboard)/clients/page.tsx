@@ -15,9 +15,12 @@ export default async function ClientsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Клиенты</h1>
-        
-          <Link href="/clients/new"><Plus className="mr-2 h-4 w-4" />Добавить</Link>
-        
+        <Link
+          href="/clients/new"
+          className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
+        >
+          <Plus className="mr-2 h-4 w-4" />Добавить
+        </Link>
       </div>
 
       <div className="divide-y rounded-xl border bg-white">
