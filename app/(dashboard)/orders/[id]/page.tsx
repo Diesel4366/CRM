@@ -8,10 +8,12 @@ import { ru } from 'date-fns/locale'
 import {
   updateOrderStatusAction, addOrderItemAction, deleteOrderItemAction,
   createDocumentAction, deleteOrderAction, updatePaymentStatusAction,
-  addBundleToOrderAction, updateOdometerAction,
+  addBundleToOrderAction, updateOdometerAction, saveFnReplacementAction,
 } from '@/app/actions'
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button'
 import { AddItemForm } from '@/components/order/add-item-form'
+import { FnReplacementSection } from '@/components/order/fn-replacement-section'
+import type { ClientKktForFn } from '@/components/order/fn-replacement-section'
 import { Trash2, FileText } from 'lucide-react'
 import type { OrderItem, CatalogItem } from '@/types/database'
 
@@ -68,7 +70,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       ? supabase.from('outlets').select('name, address').eq('id', ordAny.outlet_id).single()
       : { data: null },
     ordAny.client_id
-      ? supabase.from('legal_entities').select('id, name, outlets(id, name, address)').eq('client_id', ordAny.client_id)
+      ? supabase.from('legal_entities')
+          .select('id, name, outlets(id, name, address, kkt(id, brand, model, serial_number, reg_number, fn(id, serial_number, fn_type, status)))')
+          .eq('client_id', ordAny.client_id)
       : { data: [] },
   ])
 
@@ -85,6 +89,28 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       clientOutlets.push({ id: o.id, name: o.name, address: o.address, legal_entity_name: le.name })
     }
   }
+
+  // Flatten client KKTs with their FN data for the replacement section
+  const clientKkts: ClientKktForFn[] = []
+  for (const le of (clientLesRes.data ?? []) as any[]) {
+    for (const o2 of le.outlets ?? []) {
+      for (const kkt of o2.kkt ?? []) {
+        clientKkts.push({
+          id: kkt.id,
+          brand: kkt.brand,
+          model: kkt.model,
+          serial_number: kkt.serial_number,
+          reg_number: kkt.reg_number,
+          fn: kkt.fn ?? [],
+        })
+      }
+    }
+  }
+
+  // FN type items that need replacement data
+  const fnItems = items
+    .filter(i => i.item_type === 'fn')
+    .map(i => ({ id: i.id, name: i.name, kkt_id: (i as any).kkt_id as string | null }))
 
   // Map outlet names for displaying in item rows
   const itemOutletIds = [...new Set(items.map(i => (i as any).outlet_id).filter(Boolean))]
@@ -284,6 +310,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         defaultOutletId={(order as any).outlet_id ?? null}
         addOrderItemAction={addOrderItemAction}
         addBundleToOrderAction={addBundleToOrderAction}
+      />
+
+      <FnReplacementSection
+        fnItems={fnItems}
+        clientKkts={clientKkts}
+        saveFnReplacementAction={saveFnReplacementAction}
       />
 
       {/* Payment */}

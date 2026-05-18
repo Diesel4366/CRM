@@ -638,6 +638,61 @@ export async function updateOdometerAction(formData: FormData) {
   redirect(`/orders/${orderId}`)
 }
 
+// ─── FN REPLACEMENT FROM ORDER ───────────────────────────────────────────────
+
+export async function saveFnReplacementAction(formData: FormData) {
+  const supabase = await createClient()
+  const db = supabase as any
+  const orderItemId = formData.get('order_item_id') as string
+  const kktId = formData.get('kkt_id') as string
+  const kktRegNumber = (formData.get('kkt_reg_number') as string) || null
+  const fnSerial = formData.get('fn_serial') as string
+  const fnType = formData.get('fn_type') as string
+  const installedAt = formData.get('installed_at') as string
+  const expiresAt = formData.get('expires_at') as string
+
+  if (!kktId || !fnSerial || !orderItemId) return
+
+  const { data: orderItem } = await db.from('order_items').select('order_id').eq('id', orderItemId).single()
+  if (!orderItem) return
+  const orderId = orderItem.order_id
+
+  await db.from('order_items').update({ kkt_id: kktId }).eq('id', orderItemId)
+
+  if (kktRegNumber) {
+    await db.from('kkt').update({ reg_number: kktRegNumber }).eq('id', kktId)
+  }
+
+  const { data: oldFn } = await db.from('fn').select('id').eq('kkt_id', kktId).eq('status', 'active').maybeSingle()
+  if (oldFn) {
+    await db.from('fn').update({ status: 'replaced' }).eq('id', oldFn.id)
+  }
+
+  const { data: newFn } = await db.from('fn').insert({
+    kkt_id: kktId,
+    serial_number: fnSerial,
+    fn_type: fnType,
+    installed_at: installedAt,
+    expires_at: expiresAt,
+    status: 'active',
+    notes: `Замена по заказу`,
+  }).select('id').single()
+
+  await db.from('kkt_events').insert({
+    kkt_id: kktId,
+    order_id: orderId,
+    event_type: 'fn_replace',
+    performed_at: installedAt,
+    old_fn_id: oldFn?.id ?? null,
+    new_fn_id: newFn?.id ?? null,
+    notes: `Замена ФН в заказе`,
+  })
+
+  revalidatePath(`/orders/${orderId}`)
+  revalidatePath(`/kkt/${kktId}`)
+  redirect(`/orders/${orderId}`)
+}
+
 // ─── KKT EVENTS ──────────────────────────────────────────────────────────────
 
 export async function createKktEventAction(formData: FormData) {
