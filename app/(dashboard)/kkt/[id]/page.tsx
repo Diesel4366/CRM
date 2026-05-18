@@ -46,27 +46,27 @@ export default async function KktDetailPage({ params }: { params: Promise<{ id: 
 
   const { data: kkt } = await supabase
     .from('kkt')
-    .select(`
-      *,
-      outlet (
-        *,
-        legal_entity (
-          *,
-          client ( * )
-        )
-      ),
-      fn ( * ),
-      ofd_subscriptions ( * ),
-      kkt_events ( * )
-    `)
+    .select('*, fn(*), ofd_subscriptions(*), kkt_events(*)')
     .eq('id', id)
     .single()
 
   if (!kkt) notFound()
 
-  const outlet = (kkt as any).outlet
-  const legalEntity = outlet?.legal_entity
-  const client = legalEntity?.client
+  const kktAny = kkt as any
+  const [outletRes, ] = await Promise.all([
+    kktAny.outlet_id
+      ? supabase.from('outlets').select('id, name, address, legal_entity_id').eq('id', kktAny.outlet_id).single()
+      : { data: null },
+  ])
+  const outlet = outletRes.data as any
+  const leRes = outlet?.legal_entity_id
+    ? await supabase.from('legal_entities').select('id, name, client_id').eq('id', outlet.legal_entity_id).single()
+    : { data: null }
+  const legalEntity = leRes.data as any
+  const clientRes = legalEntity?.client_id
+    ? await supabase.from('clients').select('id, name').eq('id', legalEntity.client_id).single()
+    : { data: null }
+  const client = clientRes.data as any
 
   const allFns = ((kkt as any).fn ?? []) as Fn[]
   const activeFn = allFns.find(f => f.status === 'active')

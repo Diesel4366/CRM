@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, Clock, ClipboardList, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
-import type { Fn, OfdSubscription, Order } from '@/types/database'
+import type { Order } from '@/types/database'
 
 function daysLeft(dateStr: string) {
   return differenceInDays(parseISO(dateStr), new Date())
@@ -28,13 +28,13 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from('fn')
-      .select('*, kkt(model, serial_number, outlet(name, address))')
+      .select('*')
       .in('status', ['active', 'expiring_soon'])
       .lte('expires_at', new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
       .order('expires_at'),
     supabase
       .from('ofd_subscriptions')
-      .select('*, kkt(model, serial_number, outlet(name))')
+      .select('*')
       .in('status', ['active', 'expiring_soon'])
       .lte('expires_at', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
       .order('expires_at'),
@@ -44,11 +44,33 @@ export default async function DashboardPage() {
       .in('status', ['confirmed', 'in_progress']),
     supabase
       .from('orders')
-      .select('*, client(name)')
+      .select('*')
       .in('status', ['confirmed', 'in_progress'])
       .order('scheduled_at', { nullsFirst: false })
       .limit(5),
   ])
+
+  const fnKktIds = [...new Set((expiringFn ?? []).map((f: any) => f.kkt_id).filter(Boolean))]
+  const ofdKktIds = [...new Set((expiringOfd ?? []).map((o: any) => o.kkt_id).filter(Boolean))]
+  const allKktIds = [...new Set([...fnKktIds, ...ofdKktIds])]
+
+  const { data: kktList } = allKktIds.length
+    ? await supabase.from('kkt').select('id, model, serial_number, outlet_id').in('id', allKktIds)
+    : { data: [] }
+
+  const outletIds = [...new Set((kktList ?? []).map((k: any) => k.outlet_id).filter(Boolean))]
+  const { data: outletList } = outletIds.length
+    ? await supabase.from('outlets').select('id, name, address').in('id', outletIds)
+    : { data: [] }
+
+  const clientIds = [...new Set((recentOrders ?? []).map((o: any) => o.client_id).filter(Boolean))]
+  const { data: clientList } = clientIds.length
+    ? await supabase.from('clients').select('id, name').in('id', clientIds)
+    : { data: [] }
+
+  const kktMap = Object.fromEntries((kktList ?? []).map((k: any) => [k.id, k]))
+  const outletMap = Object.fromEntries((outletList ?? []).map((o: any) => [o.id, o]))
+  const clientMap = Object.fromEntries((clientList ?? []).map((c: any) => [c.id, c.name]))
 
   return (
     <div className="space-y-6">
@@ -110,15 +132,19 @@ export default async function DashboardPage() {
               <p className="text-sm text-gray-400">Всё в порядке</p>
             ) : (
               <div className="space-y-2">
-                {(expiringFn as (Fn & { kkt: { model: string; serial_number: string; outlet: { name: string; address: string } } })[]).map(fn => (
-                  <div key={fn.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
-                    <div>
-                      <p className="font-medium">{(fn.kkt as { outlet: { name: string } }).outlet?.name}</p>
-                      <p className="text-xs text-gray-400">{fn.kkt?.model} · ФН {fn.serial_number}</p>
+                {(expiringFn as any[]).map(fn => {
+                  const kkt = kktMap[(fn as any).kkt_id]
+                  const outlet = kkt ? outletMap[kkt.outlet_id] : null
+                  return (
+                    <div key={fn.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
+                      <div>
+                        <p className="font-medium">{outlet?.name ?? '—'}</p>
+                        <p className="text-xs text-gray-400">{kkt?.model} · ФН {fn.serial_number}</p>
+                      </div>
+                      {urgencyBadge(daysLeft(fn.expires_at))}
                     </div>
-                    {urgencyBadge(daysLeft(fn.expires_at))}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>
@@ -137,15 +163,19 @@ export default async function DashboardPage() {
               <p className="text-sm text-gray-400">Всё в порядке</p>
             ) : (
               <div className="space-y-2">
-                {(expiringOfd as (OfdSubscription & { kkt: { model: string; outlet: { name: string } } })[]).map(ofd => (
-                  <div key={ofd.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
-                    <div>
-                      <p className="font-medium">{(ofd.kkt as { outlet: { name: string } }).outlet?.name}</p>
-                      <p className="text-xs text-gray-400">{ofd.kkt?.model} · {ofd.provider}</p>
+                {(expiringOfd as any[]).map(ofd => {
+                  const kkt = kktMap[(ofd as any).kkt_id]
+                  const outlet = kkt ? outletMap[kkt.outlet_id] : null
+                  return (
+                    <div key={ofd.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
+                      <div>
+                        <p className="font-medium">{outlet?.name ?? '—'}</p>
+                        <p className="text-xs text-gray-400">{kkt?.model} · {ofd.provider}</p>
+                      </div>
+                      {urgencyBadge(daysLeft(ofd.expires_at))}
                     </div>
-                    {urgencyBadge(daysLeft(ofd.expires_at))}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>
@@ -162,14 +192,14 @@ export default async function DashboardPage() {
               <p className="text-sm text-gray-400">Нет активных заказов</p>
             ) : (
               <div className="space-y-2">
-                {(recentOrders as (Order & { client: { name: string } })[]).map(order => (
+                {(recentOrders as Order[]).map(order => (
                   <Link
                     key={order.id}
                     href={`/orders/${order.id}`}
                     className="flex items-center justify-between rounded-md border p-3 text-sm hover:bg-gray-50"
                   >
                     <div>
-                      <p className="font-medium">{order.order_number} · {order.client?.name}</p>
+                      <p className="font-medium">{order.order_number} · {clientMap[(order as any).client_id]}</p>
                       <p className="text-xs text-gray-400">
                         {order.scheduled_at
                           ? format(parseISO(order.scheduled_at), 'd MMM yyyy', { locale: ru })
