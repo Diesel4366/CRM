@@ -303,11 +303,27 @@ export async function updateCatalogItemAction(formData: FormData) {
   const supabase = await createClient()
   const db = supabase as any
   const id = formData.get('id') as string
+  const itemType = formData.get('item_type') as string
   const validityRaw = formData.get('validity_months') as string
+
+  // Для комплекта пересчитываем закупочную цену из компонентов
+  let costPrice = Number(formData.get('cost_price')) || 0
+  if (itemType === 'bundle') {
+    const { data: comps } = await db
+      .from('catalog_bundle_items')
+      .select('quantity, item:item_id(cost_price)')
+      .eq('bundle_id', id)
+    if (comps?.length) {
+      costPrice = (comps as any[]).reduce(
+        (s: number, c: any) => s + (Number(c.item?.cost_price) || 0) * c.quantity, 0
+      )
+    }
+  }
+
   await db.from('catalog_items').update({
     name: formData.get('name') as string,
-    item_type: formData.get('item_type') as string,
-    cost_price: Number(formData.get('cost_price')) || 0,
+    item_type: itemType,
+    cost_price: costPrice,
     retail_price: Number(formData.get('retail_price')) || 0,
     unit: (formData.get('unit') as string) || 'шт',
     active: formData.get('active') === 'on',

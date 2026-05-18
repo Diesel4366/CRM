@@ -28,6 +28,9 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
   const components = (bundleComponents ?? []) as CatalogBundleItem[]
   const isBundle = ci.item_type === 'bundle'
   const showValidity = ci.item_type === 'fn' || ci.item_type === 'ofd'
+  const bundleCostTotal = isBundle
+    ? components.reduce((s, c) => s + (Number(c.item?.cost_price) || 0) * c.quantity, 0)
+    : null
 
   // Available items to add (exclude already added)
   const addedIds = new Set(components.map(c => c.item_id))
@@ -90,14 +93,25 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700">Закупочная цена, ₽</label>
-              <input
-                name="cost_price"
-                type="number"
-                min="0"
-                step="0.01"
-                defaultValue={ci.cost_price}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
-              />
+              {isBundle ? (
+                <>
+                  <input type="hidden" name="cost_price" value={bundleCostTotal ?? 0} />
+                  <div className="w-full rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-500 flex items-center justify-between">
+                    <span>{(bundleCostTotal ?? 0).toLocaleString('ru')} ₽</span>
+                    <span className="text-xs text-gray-400">авто</span>
+                  </div>
+                  <p className="text-xs text-gray-400">Сумма закупочных цен компонентов</p>
+                </>
+              ) : (
+                <input
+                  name="cost_price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  defaultValue={ci.cost_price}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+                />
+              )}
             </div>
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700">
@@ -172,7 +186,8 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
                   <th className="px-5 py-3">Позиция</th>
                   <th className="px-5 py-3 text-center">Тип</th>
                   <th className="px-5 py-3 text-center">Кол-во</th>
-                  <th className="px-5 py-3 text-right">Цена</th>
+                  <th className="px-5 py-3 text-right">Закупочная</th>
+                  <th className="px-5 py-3 text-right">Розничная</th>
                   <th className="px-5 py-3"></th>
                 </tr>
               </thead>
@@ -182,8 +197,11 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
                     <td className="px-5 py-3 font-medium">{c.item?.name}</td>
                     <td className="px-5 py-3 text-center text-xs text-gray-500">{itemTypeLabel[c.item?.item_type ?? ''] ?? c.item?.item_type}</td>
                     <td className="px-5 py-3 text-center">{c.quantity}</td>
+                    <td className="px-5 py-3 text-right text-gray-400 text-xs">
+                      {c.item?.cost_price != null ? `${(Number(c.item.cost_price) * c.quantity).toLocaleString('ru')} ₽` : '—'}
+                    </td>
                     <td className="px-5 py-3 text-right text-gray-600">
-                      {c.item?.retail_price != null ? `${Number(c.item.retail_price).toLocaleString('ru')} ₽` : '—'}
+                      {c.item?.retail_price != null ? `${(Number(c.item.retail_price) * c.quantity).toLocaleString('ru')} ₽` : '—'}
                     </td>
                     <td className="px-5 py-3">
                       <ConfirmDeleteButton
@@ -200,7 +218,10 @@ export default async function EditCatalogItemPage({ params }: { params: Promise<
               </tbody>
               <tfoot>
                 <tr className="border-t bg-gray-50">
-                  <td colSpan={3} className="px-5 py-2 text-xs text-gray-400 text-right">Итого по позициям:</td>
+                  <td colSpan={3} className="px-5 py-2 text-xs text-gray-400 text-right">Итого:</td>
+                  <td className="px-5 py-2 text-right text-xs text-gray-400">
+                    {bundleCostTotal?.toLocaleString('ru')} ₽
+                  </td>
                   <td className="px-5 py-2 text-right text-sm font-medium">
                     {components.reduce((s, c) => s + (Number(c.item?.retail_price) || 0) * c.quantity, 0).toLocaleString('ru')} ₽
                   </td>
