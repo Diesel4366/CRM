@@ -490,6 +490,18 @@ export async function deleteOrderItemAction(formData: FormData) {
 
 // ─── BUNDLE COMPONENTS ───────────────────────────────────────────────────────
 
+async function recalcBundleCostPrice(db: any, bundleId: string) {
+  const { data: components } = await db
+    .from('catalog_bundle_items')
+    .select('quantity, item:catalog_items(cost_price)')
+    .eq('bundle_id', bundleId)
+  const totalCost = (components ?? []).reduce(
+    (sum: number, c: any) => sum + c.quantity * (c.item?.cost_price ?? 0),
+    0
+  )
+  await db.from('catalog_items').update({ cost_price: totalCost }).eq('id', bundleId)
+}
+
 export async function addBundleComponentAction(formData: FormData) {
   const supabase = await createClient()
   const db = supabase as any
@@ -499,6 +511,7 @@ export async function addBundleComponentAction(formData: FormData) {
     item_id: formData.get('item_id') as string,
     quantity: Number(formData.get('quantity')) || 1,
   })
+  await recalcBundleCostPrice(db, bundleId)
   revalidatePath(`/catalog/${bundleId}/edit`)
 }
 
@@ -508,6 +521,7 @@ export async function removeBundleComponentAction(formData: FormData) {
   const id = formData.get('id') as string
   const bundleId = formData.get('bundle_id') as string
   await db.from('catalog_bundle_items').delete().eq('id', id)
+  await recalcBundleCostPrice(db, bundleId)
   revalidatePath(`/catalog/${bundleId}/edit`)
 }
 
