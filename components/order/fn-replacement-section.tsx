@@ -10,6 +10,7 @@ export type ClientKktForFn = {
   model: string
   serial_number: string
   reg_number: string | null
+  outlet_name: string
   fn: { id: string; serial_number: string; fn_type: string; status: string }[]
 }
 
@@ -115,7 +116,7 @@ function FnItemCard({ item, clientKkts, saveFnReplacementAction }: {
                 <option value="">Выберите кассу</option>
                 {clientKkts.map(k => (
                   <option key={k.id} value={k.id}>
-                    {k.brand} {k.model} — ЗН: {k.serial_number}
+                    {k.brand} {k.model} — ЗН: {k.serial_number} · {k.outlet_name}
                   </option>
                 ))}
               </select>

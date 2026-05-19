@@ -101,6 +101,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           model: kkt.model,
           serial_number: kkt.serial_number,
           reg_number: kkt.reg_number,
+          outlet_name: o2.name,
           fn: kkt.fn ?? [],
         })
       }
