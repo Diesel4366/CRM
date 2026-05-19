@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
@@ -33,10 +34,14 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-56 flex-col" style={{ background: 'linear-gradient(180deg, #0c6b61 0%, #0a5a51 100%)' }}>
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 px-5 border-b border-white/10">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 shrink-0">
-          <span className="text-white font-black text-sm tracking-tight">IT</span>
-        </div>
+      <div className="flex h-16 items-center gap-3 px-4 border-b border-white/10">
+        <Image
+          src="/logo.jpg"
+          alt="IT Доктор"
+          width={40}
+          height={40}
+          className="rounded-lg shrink-0"
+        />
         <div className="flex flex-col leading-none gap-1">
           <span className="text-white font-black text-sm tracking-widest uppercase">ДОКТОР</span>
           <span className="text-white/45 text-[10px] tracking-wide">CRM система</span>
